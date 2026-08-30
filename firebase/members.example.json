@@ -1,0 +1,5 @@
+[
+  { "id": "mom", "name": "Mom", "pin": "1234", "role": "owner" },
+  { "id": "dad", "name": "Dad", "pin": "5678", "role": "member" },
+  { "id": "grandma", "name": "Grandma", "pin": "0000", "role": "member" }
+]

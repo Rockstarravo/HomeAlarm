@@ -1,0 +1,43 @@
+name: kinremind
+description: >
+  Cross-device family reminder app. Owner sets reminders that ring as
+  loud, alarm-style notifications on a family member's phone, synced
+  in real time through a self-hosted Firebase project.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase (Spark/free tier only — no Auth, no Cloud Functions, no FCM)
+  firebase_core: ^3.6.0
+  cloud_firestore: ^5.4.4
+
+  # Alarms & notifications
+  android_alarm_manager_plus: ^4.0.4
+  flutter_local_notifications: ^18.0.1
+
+  # Local session + background work
+  shared_preferences: ^2.3.2
+  workmanager: ^0.5.2
+
+  # Permissions & OEM handling
+  permission_handler: ^11.3.1
+  device_info_plus: ^11.1.0
+
+  # Utilities
+  uuid: ^4.5.1
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

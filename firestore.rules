@@ -1,0 +1,67 @@
+rules_version = '2';
+
+// PROJECT_SPEC.md section 7 — locked trade-off: there is no Firebase Auth
+// in this MVP, so these rules cannot cryptographically verify *who* is
+// making a request, only that the request is *shaped* like a legitimate
+// one. Anyone holding this app's Firebase config (not secret by design —
+// it ships inside the APK) can read/write this project's Firestore data.
+// That is an accepted trade-off for a private family tool sized at
+// 1 owner + a handful of members. Do not put sensitive medical detail in
+// reminder text if that concerns you, and do not reuse this ruleset for a
+// deployment that needs real trust boundaries — see the roadmap in
+// PROJECT_SPEC.md section 14 for adding real Auth later.
+
+function isNonEmptyString(value) {
+  return value is string && value.size() > 0;
+}
+
+function isValidMember(data) {
+  return data.keys().hasAll(['name', 'pin', 'role'])
+    && isNonEmptyString(data.name)
+    && isNonEmptyString(data.pin)
+    && (data.role == 'owner' || data.role == 'member');
+}
+
+function isValidReminder(data) {
+  return data.keys().hasAll(
+      ['title', 'notes', 'scheduleTime', 'recurrence', 'targetMemberIds', 'createdBy', 'isActive']
+    )
+    && isNonEmptyString(data.title)
+    && data.notes is string
+    && data.scheduleTime.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+    && isNonEmptyString(data.recurrence)
+    && data.targetMemberIds is list
+    && data.targetMemberIds.size() > 0
+    && isNonEmptyString(data.createdBy)
+    && data.isActive is bool;
+}
+
+function isValidAck(data) {
+  return data.keys().hasAll(['status'])
+    && (data.status == 'pending' || data.status == 'done');
+}
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Seeded manually via firebase/seed_members.md — never written by the
+    // app itself. Readable so the static member-picker screen can list
+    // names before any session exists.
+    match /members/{memberId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /reminders/{reminderId} {
+      allow read: if true;
+      allow create: if isValidReminder(request.resource.data);
+      allow update: if isValidReminder(request.resource.data);
+      allow delete: if true;
+
+      match /ack/{memberId} {
+        allow read: if true;
+        allow write: if isValidAck(request.resource.data);
+      }
+    }
+  }
+}
