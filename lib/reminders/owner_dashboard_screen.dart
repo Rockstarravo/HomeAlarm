@@ -55,7 +55,8 @@ class OwnerDashboardScreen extends StatelessWidget {
               final reminder = reminders[index];
               return Card(
                 child: ListTile(
-                  leading: Icon(reminder.isActive ? Icons.alarm_on : Icons.alarm_off),
+                  leading: Icon(
+                      reminder.isActive ? Icons.alarm_on : Icons.alarm_off),
                   title: Text(reminder.title),
                   subtitle: Text(
                     [
@@ -67,7 +68,8 @@ class OwnerDashboardScreen extends StatelessWidget {
                   isThreeLine: true,
                   trailing: Switch(
                     value: reminder.isActive,
-                    onChanged: (value) => repository.setActive(reminder.id, value),
+                    onChanged: (value) =>
+                        repository.setActive(reminder.id, value),
                   ),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
@@ -108,8 +110,12 @@ class OwnerDashboardScreen extends StatelessWidget {
         title: const Text('Delete reminder?'),
         content: Text('"${reminder.title}" will be removed for everyone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete')),
         ],
       ),
     );

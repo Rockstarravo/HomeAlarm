@@ -15,7 +15,8 @@ class NotificationService {
   NotificationService._();
 
   static const alarmChannelId = 'kinremind_alarm';
-  static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
 
   static Future<void> initialize() async {
@@ -25,21 +26,25 @@ class NotificationService {
     const initSettings = InitializationSettings(android: androidInit);
     await _plugin.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: (response) => handleNotificationAction(response),
-      onDidReceiveBackgroundNotificationResponse: notificationBackgroundDispatcher,
+      onDidReceiveNotificationResponse: (response) =>
+          handleNotificationAction(response),
+      onDidReceiveBackgroundNotificationResponse:
+          notificationBackgroundDispatcher,
     );
 
     const channel = AndroidNotificationChannel(
       alarmChannelId,
       'Alarm reminders',
-      description: 'Full-screen alarm-style reminders that ring through silent mode.',
+      description:
+          'Full-screen alarm-style reminders that ring through silent mode.',
       importance: Importance.max,
       playSound: true,
       audioAttributesUsage: AudioAttributesUsage.alarm,
       enableVibration: true,
     );
     await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
     _initialized = true;
@@ -49,7 +54,8 @@ class NotificationService {
   /// the reminder's title/notes fresh from Firestore so an edit made after
   /// the alarm was scheduled is still reflected; falls back to a generic
   /// message if the device is offline at that moment.
-  static Future<void> showAlarmNotification({required String reminderId}) async {
+  static Future<void> showAlarmNotification(
+      {required String reminderId}) async {
     await initialize();
 
     var title = 'Reminder';
@@ -58,7 +64,10 @@ class NotificationService {
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp();
       }
-      final doc = await FirebaseFirestore.instance.collection('reminders').doc(reminderId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('reminders')
+          .doc(reminderId)
+          .get();
       final data = doc.data();
       if (data != null) {
         final reminder = Reminder.fromFirestore(reminderId, data);
@@ -73,11 +82,12 @@ class NotificationService {
       _notificationIdFor(reminderId),
       title,
       body,
-      NotificationDetails(
+      const NotificationDetails(
         android: AndroidNotificationDetails(
           alarmChannelId,
           'Alarm reminders',
-          channelDescription: 'Full-screen alarm-style reminders that ring through silent mode.',
+          channelDescription:
+              'Full-screen alarm-style reminders that ring through silent mode.',
           importance: Importance.max,
           priority: Priority.high,
           category: AndroidNotificationCategory.alarm,
@@ -88,9 +98,11 @@ class NotificationService {
           playSound: true,
           enableVibration: true,
           visibility: NotificationVisibility.public,
-          actions: const [
-            AndroidNotificationAction('snooze', 'Snooze 10m', showsUserInterface: false),
-            AndroidNotificationAction('dismiss', 'Dismiss', showsUserInterface: false, cancelNotification: true),
+          actions: [
+            AndroidNotificationAction('snooze', 'Snooze 10m',
+                showsUserInterface: false),
+            AndroidNotificationAction('dismiss', 'Dismiss',
+                showsUserInterface: false, cancelNotification: true),
           ],
         ),
       ),
@@ -112,7 +124,8 @@ class NotificationService {
     await AlarmScheduler.snooze(reminderId);
   }
 
-  static int _notificationIdFor(String reminderId) => reminderId.hashCode & 0x7fffffff;
+  static int _notificationIdFor(String reminderId) =>
+      reminderId.hashCode & 0x7fffffff;
 
   static Future<void> _writeAck(String reminderId, AckStatus status) async {
     final memberId = await AuthService().getCachedMemberId();

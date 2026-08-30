@@ -39,7 +39,8 @@ class KinRemindApp extends StatelessWidget {
     return MaterialApp(
       title: 'KinRemind',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: const Color(0xFF3F51B5), useMaterial3: true),
+      theme: ThemeData(
+          colorSchemeSeed: const Color(0xFF3F51B5), useMaterial3: true),
       home: const RootGate(),
     );
   }
@@ -132,7 +133,8 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
     }
 
     if (_member == null) {
-      return MemberPickerScreen(authService: _authService, onLoggedIn: _onLoggedIn);
+      return MemberPickerScreen(
+          authService: _authService, onLoggedIn: _onLoggedIn);
     }
 
     if (!_permissionsOk) {
@@ -142,7 +144,8 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
       );
     }
 
-    return HomeShell(member: _member!, authService: _authService, onLogout: _onLogout);
+    return HomeShell(
+        member: _member!, authService: _authService, onLogout: _onLogout);
   }
 }
 
@@ -179,9 +182,12 @@ class _HomeShellState extends State<HomeShell> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isOwner && _tabIndex == 1 ? 'Manage reminders' : 'Hi, ${widget.member.name}'),
+        title: Text(isOwner && _tabIndex == 1
+            ? 'Manage reminders'
+            : 'Hi, ${widget.member.name}'),
         actions: [
-          IconButton(icon: const Icon(Icons.logout), onPressed: widget.onLogout),
+          IconButton(
+              icon: const Icon(Icons.logout), onPressed: widget.onLogout),
         ],
       ),
       body: FutureBuilder<List<Member>>(
@@ -192,7 +198,8 @@ class _HomeShellState extends State<HomeShell> {
           }
           final members = snapshot.data!;
           if (!isOwner || _tabIndex == 0) {
-            return ReminderListScreen(memberId: widget.member.id, repository: _repository);
+            return ReminderListScreen(
+                memberId: widget.member.id, repository: _repository);
           }
           return OwnerDashboardScreen(
             repository: _repository,
@@ -204,10 +211,13 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: isOwner
           ? NavigationBar(
               selectedIndex: _tabIndex,
-              onDestinationSelected: (index) => setState(() => _tabIndex = index),
+              onDestinationSelected: (index) =>
+                  setState(() => _tabIndex = index),
               destinations: const [
-                NavigationDestination(icon: Icon(Icons.list_alt), label: 'My reminders'),
-                NavigationDestination(icon: Icon(Icons.edit_calendar), label: 'Manage'),
+                NavigationDestination(
+                    icon: Icon(Icons.list_alt), label: 'My reminders'),
+                NavigationDestination(
+                    icon: Icon(Icons.edit_calendar), label: 'Manage'),
               ],
             )
           : null,

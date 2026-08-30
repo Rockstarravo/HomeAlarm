@@ -58,7 +58,11 @@ class ReminderRepository {
 
   /// Live ack status per member, for the owner's dashboard.
   Stream<Map<String, ReminderAck>> watchAcks(String reminderId) {
-    return _reminders.doc(reminderId).collection('ack').snapshots().map((snapshot) {
+    return _reminders
+        .doc(reminderId)
+        .collection('ack')
+        .snapshots()
+        .map((snapshot) {
       final acks = <String, ReminderAck>{};
       for (final doc in snapshot.docs) {
         acks[doc.id] = ReminderAck.fromFirestore(doc.id, doc.data());

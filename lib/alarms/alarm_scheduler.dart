@@ -37,7 +37,8 @@ class AlarmScheduler {
   /// 8 requires the old alarm to be explicitly cancelled first.
   static Future<void> schedule(Reminder reminder) async {
     await cancel(reminder.id);
-    final fireTime = _nextFireTime(reminder.hour, reminder.minute, DateTime.now());
+    final fireTime =
+        _nextFireTime(reminder.hour, reminder.minute, DateTime.now());
     await _upsertPending(
       reminderId: reminder.id,
       recurrence: reminder.recurrence,
@@ -70,7 +71,8 @@ class AlarmScheduler {
   }) async {
     final pending = await _readPending();
     final entry = pending[reminderId];
-    final recurrence = entry?['recurrence'] as String? ?? ReminderRecurrence.oneTime;
+    final recurrence =
+        entry?['recurrence'] as String? ?? ReminderRecurrence.oneTime;
     final hour = entry?['hour'] as int? ?? 0;
     final minute = entry?['minute'] as int? ?? 0;
 
@@ -113,10 +115,12 @@ class AlarmScheduler {
     final raw = prefs.getString(_pendingKey);
     if (raw == null || raw.isEmpty) return {};
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    return decoded.map((key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)));
+    return decoded.map(
+        (key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)));
   }
 
-  static Future<void> _writePending(Map<String, Map<String, dynamic>> pending) async {
+  static Future<void> _writePending(
+      Map<String, Map<String, dynamic>> pending) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_pendingKey, jsonEncode(pending));
   }
@@ -164,7 +168,8 @@ Future<void> alarmCallbackDispatcher() async {
 
     await NotificationService.showAlarmNotification(reminderId: reminderId);
 
-    final recurrence = data['recurrence'] as String? ?? ReminderRecurrence.oneTime;
+    final recurrence =
+        data['recurrence'] as String? ?? ReminderRecurrence.oneTime;
     if (recurrence == ReminderRecurrence.daily) {
       final hour = data['hour'] as int? ?? 0;
       final minute = data['minute'] as int? ?? 0;

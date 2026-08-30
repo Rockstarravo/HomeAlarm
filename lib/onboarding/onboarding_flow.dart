@@ -23,7 +23,8 @@ class OnboardingFlow extends StatefulWidget {
 
 enum _Step { notifications, exactAlarm, battery, oem, done }
 
-class _OnboardingFlowState extends State<OnboardingFlow> with WidgetsBindingObserver {
+class _OnboardingFlowState extends State<OnboardingFlow>
+    with WidgetsBindingObserver {
   _Step _step = _Step.notifications;
   bool _needsOemStep = false;
   String? _oemLabel;
@@ -94,7 +95,8 @@ class _OnboardingFlowState extends State<OnboardingFlow> with WidgetsBindingObse
         return _PermissionStep(
           icon: Icons.notifications_active,
           title: 'Allow notifications',
-          body: 'KinRemind rings reminders as full-screen alarm-style notifications, '
+          body:
+              'KinRemind rings reminders as full-screen alarm-style notifications, '
               'even through silent mode. Without this permission it can\'t ring at all.',
           buttonLabel: 'Allow notifications',
           onPressed: () async {
@@ -123,7 +125,8 @@ class _OnboardingFlowState extends State<OnboardingFlow> with WidgetsBindingObse
               'created by your family reach this phone in real time.',
           buttonLabel: 'Disable battery optimization',
           onPressed: () async {
-            await widget.permissionService.requestBatteryOptimizationExemption();
+            await widget.permissionService
+                .requestBatteryOptimizationExemption();
             _advance();
           },
         );
@@ -131,7 +134,8 @@ class _OnboardingFlowState extends State<OnboardingFlow> with WidgetsBindingObse
         return _PermissionStep(
           icon: Icons.phone_android,
           title: '${_oemLabel ?? 'Your phone'} needs one more step',
-          body: '${_oemLabel ?? 'This phone\'s'} manufacturer aggressively kills '
+          body:
+              '${_oemLabel ?? 'This phone\'s'} manufacturer aggressively kills '
               'background apps unless you allow "autostart" for KinRemind. '
               'You\'ll be taken to that settings screen next — turn KinRemind on there.',
           buttonLabel: 'Open autostart settings',
@@ -172,13 +176,16 @@ class _PermissionStep extends StatelessWidget {
             children: [
               Icon(icon, size: 72),
               const SizedBox(height: 24),
-              Text(title, style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center),
+              Text(title,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  textAlign: TextAlign.center),
               const SizedBox(height: 16),
               Text(body, textAlign: TextAlign.center),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
-                child: FilledButton(onPressed: onPressed, child: Text(buttonLabel)),
+                child: FilledButton(
+                    onPressed: onPressed, child: Text(buttonLabel)),
               ),
             ],
           ),

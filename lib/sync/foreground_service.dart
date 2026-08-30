@@ -15,7 +15,8 @@ class ForegroundSyncService {
   static Future<void> stop() => _channel.invokeMethod('stopSyncService');
 
   static Future<bool> isBatteryOptimizationIgnored() async {
-    final result = await _channel.invokeMethod<bool>('isBatteryOptimizationIgnored');
+    final result =
+        await _channel.invokeMethod<bool>('isBatteryOptimizationIgnored');
     return result ?? false;
   }
 }

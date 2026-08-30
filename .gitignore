@@ -21,6 +21,7 @@ android/local.properties
 android/.gradle/
 android/app/build/
 android/build/
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 android/**/*.keystore
 android/**/*.jks
 android/key.properties

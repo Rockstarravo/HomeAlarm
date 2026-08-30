@@ -111,7 +111,8 @@ class ReminderAck {
   final AckStatus status;
   final DateTime? timestamp;
 
-  factory ReminderAck.fromFirestore(String memberId, Map<String, dynamic> data) {
+  factory ReminderAck.fromFirestore(
+      String memberId, Map<String, dynamic> data) {
     final ts = data['timestamp'];
     return ReminderAck(
       memberId: memberId,

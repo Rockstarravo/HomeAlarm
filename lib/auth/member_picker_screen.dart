@@ -46,7 +46,8 @@ class _MemberPickerScreenState extends State<MemberPickerScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return _ErrorState(error: snapshot.error.toString(), onRetry: _retry);
+            return _ErrorState(
+                error: snapshot.error.toString(), onRetry: _retry);
           }
           final members = snapshot.data ?? const [];
           if (members.isEmpty) {
@@ -66,7 +67,9 @@ class _MemberPickerScreenState extends State<MemberPickerScreen> {
               return Card(
                 child: ListTile(
                   leading: CircleAvatar(
-                    child: Text(member.name.isNotEmpty ? member.name[0].toUpperCase() : '?'),
+                    child: Text(member.name.isNotEmpty
+                        ? member.name[0].toUpperCase()
+                        : '?'),
                   ),
                   title: Text(member.name),
                   subtitle: Text(member.isOwner ? 'Owner' : 'Family member'),

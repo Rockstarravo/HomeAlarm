@@ -99,7 +99,8 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Edit reminder' : 'New reminder')),
+      appBar:
+          AppBar(title: Text(_isEditing ? 'Edit reminder' : 'New reminder')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -108,8 +109,9 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
             TextFormField(
               controller: _titleController,
               decoration: const InputDecoration(labelText: 'Title'),
-              validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Title is required' : null,
+              validator: (value) => (value == null || value.trim().isEmpty)
+                  ? 'Title is required'
+                  : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
@@ -126,24 +128,29 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
               onTap: _pickTime,
             ),
             const Divider(),
-            RadioListTile<String>(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Every day'),
-              value: ReminderRecurrence.daily,
+            RadioGroup<String>(
               groupValue: _recurrence,
               onChanged: (value) => setState(() => _recurrence = value!),
-            ),
-            RadioListTile<String>(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('One time'),
-              value: ReminderRecurrence.oneTime,
-              groupValue: _recurrence,
-              onChanged: (value) => setState(() => _recurrence = value!),
+              child: const Column(
+                children: [
+                  RadioListTile<String>(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('Every day'),
+                    value: ReminderRecurrence.daily,
+                  ),
+                  RadioListTile<String>(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('One time'),
+                    value: ReminderRecurrence.oneTime,
+                  ),
+                ],
+              ),
             ),
             const Divider(),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('Remind', style: TextStyle(fontWeight: FontWeight.bold)),
+              child:
+                  Text('Remind', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             ...widget.members.map(
               (member) => CheckboxListTile(
