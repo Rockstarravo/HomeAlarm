@@ -23,7 +23,7 @@ dependencies:
 
   # Local session + background work
   shared_preferences: ^2.3.2
-  workmanager: ^0.5.2
+  workmanager: ^0.10.9
 
   # Permissions & OEM handling
   permission_handler: ^11.3.1
