@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../alarms/alarm_scheduler.dart';
 import '../models/reminder.dart';
 import '../reminders/reminder_repository.dart';
@@ -16,14 +18,21 @@ class FirestoreListenerService {
   StreamSubscription<List<Reminder>>? _subscription;
 
   void start(String memberId) {
+    debugPrint('[sync] FirestoreListenerService.start(memberId=$memberId)');
     _subscription?.cancel();
     _subscription = _repository.watchForMember(memberId).listen(
-          _reconcile,
-          onError: (_) {}, // offline — alarms already scheduled stay armed
-        );
+      _reconcile,
+      onError: (Object error) {
+        // offline — alarms already scheduled stay armed
+        debugPrint('[sync] listener error: $error');
+      },
+    );
   }
 
   Future<void> _reconcile(List<Reminder> reminders) async {
+    debugPrint('[sync] snapshot: ${reminders.length} active reminder(s) '
+        'for this member: ${reminders.map((r) => '${r.id}@${r.scheduleTime}').join(', ')}');
+
     final stillActiveIds = reminders.map((r) => r.id).toSet();
 
     final previouslyScheduled = await AlarmScheduler.scheduledReminderIds();

@@ -15,6 +15,7 @@ import 'firestore_listener_service.dart';
 @pragma('vm:entry-point')
 Future<void> syncEntrypoint() async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('[sync] syncEntrypoint() started');
 
   if (!FeatureFlags.foregroundSyncEnabled) {
     // The native service (started from Kotlin on boot/app launch) doesn't
@@ -22,6 +23,7 @@ Future<void> syncEntrypoint() async {
     // notification — but bailing out here means it does no listener/alarm
     // work while the flag is off. Fully removing the native service too
     // is a manifest/Kotlin change; see docs/03-modules.md.
+    debugPrint('[sync] foregroundSyncEnabled is false, bailing out');
     return;
   }
 
@@ -30,13 +32,16 @@ Future<void> syncEntrypoint() async {
   }
   await AlarmScheduler.initialize();
   await NotificationService.initialize();
+  debugPrint('[sync] Firebase/AlarmScheduler/NotificationService ready');
 
   final memberId = await AuthService().getCachedMemberId();
   if (memberId == null) {
     // Onboarding hasn't picked a member yet — nothing to sync.
+    debugPrint('[sync] no cached memberId, nothing to sync');
     return;
   }
 
+  debugPrint('[sync] starting Firestore listener for memberId=$memberId');
   // Kept alive by the foreground service's own lifecycle; the listener
   // subscription is what keeps this isolate doing useful work.
   FirestoreListenerService().start(memberId);

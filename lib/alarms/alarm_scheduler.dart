@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants.dart';
@@ -34,6 +35,8 @@ class AlarmScheduler {
     await cancel(reminder.id);
     final fireTime =
         _nextFireTime(reminder.hour, reminder.minute, DateTime.now());
+    debugPrint('[alarms] scheduling "${reminder.title}" (${reminder.id}) '
+        'next fire: $fireTime');
     await _upsertPending(
       reminderId: reminder.id,
       recurrence: reminder.recurrence,
@@ -83,8 +86,8 @@ class AlarmScheduler {
     await _arm(reminderId, fireTime);
   }
 
-  static Future<void> _arm(String reminderId, DateTime fireTime) {
-    return AndroidAlarmManager.oneShotAt(
+  static Future<void> _arm(String reminderId, DateTime fireTime) async {
+    final armed = await AndroidAlarmManager.oneShotAt(
       fireTime,
       alarmIdFor(reminderId),
       alarmCallbackDispatcher,
@@ -93,6 +96,7 @@ class AlarmScheduler {
       rescheduleOnReboot: true,
       allowWhileIdle: true,
     );
+    debugPrint('[alarms] armed reminderId=$reminderId for $fireTime -> $armed');
   }
 
   static DateTime _nextFireTime(int hour, int minute, DateTime from) {
@@ -151,6 +155,8 @@ class AlarmScheduler {
 Future<void> alarmCallbackDispatcher() async {
   final now = DateTime.now();
   final pending = await AlarmScheduler._readPending();
+  debugPrint('[alarms] alarmCallbackDispatcher fired at $now, '
+      '${pending.length} pending entr${pending.length == 1 ? 'y' : 'ies'}');
 
   for (final entry in pending.entries.toList()) {
     final reminderId = entry.key;
@@ -158,9 +164,11 @@ Future<void> alarmCallbackDispatcher() async {
     final fireEpochMs = data['fireEpochMs'] as int;
     final dueAt = DateTime.fromMillisecondsSinceEpoch(fireEpochMs);
     if (now.isBefore(dueAt.subtract(AlarmConfig.dueTolerance))) {
+      debugPrint('[alarms] $reminderId not due until $dueAt, skipping');
       continue; // not due yet — leave scheduled
     }
 
+    debugPrint('[alarms] $reminderId is due, showing notification');
     await NotificationService.showAlarmNotification(reminderId: reminderId);
 
     final recurrence =
