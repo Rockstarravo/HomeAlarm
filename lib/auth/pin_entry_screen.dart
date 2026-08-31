@@ -39,10 +39,21 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
       _error = null;
     });
 
-    final member = await widget.authService.login(
-      memberId: widget.member.id,
-      pin: _controller.text,
-    );
+    Member? member;
+    try {
+      member = await widget.authService.login(
+        memberId: widget.member.id,
+        pin: _controller.text,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error =
+            "Couldn't reach the server. Check your connection and try again.";
+      });
+      return;
+    }
 
     if (!mounted) return;
 
