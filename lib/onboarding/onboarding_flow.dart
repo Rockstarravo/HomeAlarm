@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../core/feature_flags.dart';
+import '../core/theme/theme.dart';
+import '../notifications/notification_service.dart';
 import 'oem_settings.dart';
 import 'permission_service.dart';
 
@@ -21,7 +24,7 @@ class OnboardingFlow extends StatefulWidget {
   State<OnboardingFlow> createState() => _OnboardingFlowState();
 }
 
-enum _Step { notifications, exactAlarm, battery, oem, done }
+enum _Step { notifications, exactAlarm, battery, oem, testAlarm, done }
 
 class _OnboardingFlowState extends State<OnboardingFlow>
     with WidgetsBindingObserver {
@@ -34,6 +37,11 @@ class _OnboardingFlowState extends State<OnboardingFlow>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    if (!FeatureFlags.oemAutostartStepEnabled) {
+      _checkingOem = false;
+      return;
+    }
     OemSettings.needsOemStep().then((needed) async {
       final label = needed ? await OemSettings.manufacturerLabel() : null;
       if (!mounted) return;
@@ -70,9 +78,12 @@ class _OnboardingFlowState extends State<OnboardingFlow>
           _step = _Step.battery;
           break;
         case _Step.battery:
-          _step = _needsOemStep ? _Step.oem : _Step.done;
+          _step = _needsOemStep ? _Step.oem : _Step.testAlarm;
           break;
         case _Step.oem:
+          _step = _Step.testAlarm;
+          break;
+        case _Step.testAlarm:
           _step = _Step.done;
           break;
         case _Step.done:
@@ -93,7 +104,7 @@ class _OnboardingFlowState extends State<OnboardingFlow>
     switch (_step) {
       case _Step.notifications:
         return _PermissionStep(
-          icon: Icons.notifications_active,
+          icon: AppIcons.notificationsPermission,
           title: 'Allow notifications',
           body:
               'KinRemind rings reminders as full-screen alarm-style notifications, '
@@ -106,7 +117,7 @@ class _OnboardingFlowState extends State<OnboardingFlow>
         );
       case _Step.exactAlarm:
         return _PermissionStep(
-          icon: Icons.alarm,
+          icon: AppIcons.exactAlarmPermission,
           title: 'Allow exact alarms',
           body: 'Reminders need to ring at the exact minute they\'re set for, '
               'not "sometime around then". Android calls this permission '
@@ -119,7 +130,7 @@ class _OnboardingFlowState extends State<OnboardingFlow>
         );
       case _Step.battery:
         return _PermissionStep(
-          icon: Icons.battery_charging_full,
+          icon: AppIcons.batteryPermission,
           title: 'Disable battery optimization',
           body: 'This keeps KinRemind\'s background sync alive so reminders '
               'created by your family reach this phone in real time.',
@@ -132,7 +143,7 @@ class _OnboardingFlowState extends State<OnboardingFlow>
         );
       case _Step.oem:
         return _PermissionStep(
-          icon: Icons.phone_android,
+          icon: AppIcons.devicePermission,
           title: '${_oemLabel ?? 'Your phone'} needs one more step',
           body:
               '${_oemLabel ?? 'This phone\'s'} manufacturer aggressively kills '
@@ -144,6 +155,8 @@ class _OnboardingFlowState extends State<OnboardingFlow>
             _advance();
           },
         );
+      case _Step.testAlarm:
+        return _TestAlarmStep(onContinue: _advance);
       case _Step.done:
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -170,22 +183,76 @@ class _PermissionStep extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 72),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
               Text(title,
                   style: Theme.of(context).textTheme.headlineSmall,
                   textAlign: TextAlign.center),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
               Text(body, textAlign: TextAlign.center),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xl),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                     onPressed: onPressed, child: Text(buttonLabel)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Last onboarding step: prove the whole pipeline works before the member
+/// ever trusts a real reminder to it. Permissions being "granted" doesn't
+/// mean the phone will actually ring — OEM quirks, a muted media stream,
+/// a missed setting — so this lets them hear it for themselves right now.
+class _TestAlarmStep extends StatelessWidget {
+  const _TestAlarmStep({required this.onContinue});
+
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(AppIcons.reminderActive, size: 72),
+              const SizedBox(height: AppSpacing.lg),
+              Text('One last check',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.md),
+              const Text(
+                "Permissions granted doesn't always mean your phone will "
+                'actually ring — send yourself a test alarm now to make '
+                'sure, especially if silent mode is on.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => NotificationService.showTestAlarm(),
+                  child: const Text('Send test alarm'),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: onContinue,
+                  child: const Text('Finish setup'),
+                ),
               ),
             ],
           ),

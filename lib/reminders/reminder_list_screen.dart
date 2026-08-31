@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/theme.dart';
+import '../core/widgets/error_state_view.dart';
 import '../models/reminder.dart';
 import 'reminder_repository.dart';
 
@@ -21,6 +23,12 @@ class ReminderListScreen extends StatelessWidget {
     return StreamBuilder<List<Reminder>>(
       stream: repository.watchForMember(memberId),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const ErrorStateView(
+            message: "Couldn't load reminders. Check your connection — "
+                'this will update automatically once it\'s back.',
+          );
+        }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -28,7 +36,7 @@ class ReminderListScreen extends StatelessWidget {
         if (reminders.isEmpty) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(AppSpacing.lg),
               child: Text(
                 'No reminders yet.\nAnything set for you by your family will show up here.',
                 textAlign: TextAlign.center,
@@ -37,14 +45,14 @@ class ReminderListScreen extends StatelessWidget {
           );
         }
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           itemCount: reminders.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
           itemBuilder: (context, index) {
             final reminder = reminders[index];
             return Card(
               child: ListTile(
-                leading: const Icon(Icons.alarm),
+                leading: const Icon(AppIcons.reminderDefault),
                 title: Text(reminder.title),
                 subtitle: Text(
                   [

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/theme.dart';
+import '../core/widgets/error_state_view.dart';
 import '../models/member.dart';
 import 'auth_service.dart';
 import 'pin_entry_screen.dart';
@@ -46,22 +48,22 @@ class _MemberPickerScreenState extends State<MemberPickerScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return _ErrorState(
-                error: snapshot.error.toString(), onRetry: _retry);
+            return ErrorStateView(
+                message: snapshot.error.toString(), onRetry: _retry);
           }
           final members = snapshot.data ?? const [];
           if (members.isEmpty) {
-            return _ErrorState(
-              error: 'No family members are set up yet.\n'
+            return ErrorStateView(
+              message: 'No family members are set up yet.\n'
                   'Ask whoever deployed this app to seed the "members" '
                   'collection (see firebase/seed_members.md).',
               onRetry: _retry,
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             itemCount: members.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
             itemBuilder: (context, index) {
               final member = members[index];
               return Card(
@@ -73,7 +75,7 @@ class _MemberPickerScreenState extends State<MemberPickerScreen> {
                   ),
                   title: Text(member.name),
                   subtitle: Text(member.isOwner ? 'Owner' : 'Family member'),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: const Icon(AppIcons.chevronForward),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => PinEntryScreen(
@@ -88,32 +90,6 @@ class _MemberPickerScreenState extends State<MemberPickerScreen> {
             },
           );
         },
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.error, required this.onRetry});
-
-  final String error;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.wifi_off, size: 48),
-            const SizedBox(height: 12),
-            Text(error, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
       ),
     );
   }

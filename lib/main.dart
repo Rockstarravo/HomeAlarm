@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'alarms/alarm_scheduler.dart';
 import 'auth/auth_service.dart';
 import 'auth/member_picker_screen.dart';
+import 'core/feature_flags.dart';
+import 'core/theme/theme.dart';
+import 'core/widgets/error_state_view.dart';
 import 'health/health_check_worker.dart';
 import 'models/member.dart';
 import 'notifications/notification_service.dart';
@@ -24,9 +27,15 @@ Future<void> main() async {
   // options file for future iOS support.
   await Firebase.initializeApp();
 
+  // Core spine — always on, see lib/core/feature_flags.dart for why these
+  // three specifically aren't behind a flag.
   await AlarmScheduler.initialize();
   await NotificationService.initialize();
-  await HealthCheckWorker.register();
+
+  // Optional reliability net — see FeatureFlags.healthCheckEnabled.
+  if (FeatureFlags.healthCheckEnabled) {
+    await HealthCheckWorker.register();
+  }
 
   runApp(const KinRemindApp());
 }
@@ -39,8 +48,7 @@ class KinRemindApp extends StatelessWidget {
     return MaterialApp(
       title: 'KinRemind',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-          colorSchemeSeed: const Color(0xFF3F51B5), useMaterial3: true),
+      theme: AppTheme.light(),
       home: const RootGate(),
     );
   }
@@ -85,11 +93,18 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
     }
   }
 
+  /// See FeatureFlags.foregroundSyncEnabled — the flag is checked here,
+  /// once, rather than at every call site.
+  Future<void> _startSyncServiceIfEnabled() {
+    if (!FeatureFlags.foregroundSyncEnabled) return Future.value();
+    return ForegroundSyncService.start();
+  }
+
   Future<void> _bootstrap() async {
     final member = await _authService.getCachedMember();
     if (member != null) {
       final ok = await _permissionService.allGranted();
-      if (ok) await ForegroundSyncService.start();
+      if (ok) await _startSyncServiceIfEnabled();
       if (!mounted) return;
       setState(() {
         _member = member;
@@ -103,7 +118,7 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
 
   Future<void> _recheckPermissions() async {
     final ok = await _permissionService.allGranted();
-    if (ok) await ForegroundSyncService.start();
+    if (ok) await _startSyncServiceIfEnabled();
     if (!mounted) return;
     setState(() => _permissionsOk = ok);
   }
@@ -115,7 +130,7 @@ class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
 
   void _onOnboardingComplete() {
     setState(() => _permissionsOk = true);
-    ForegroundSyncService.start();
+    _startSyncServiceIfEnabled();
   }
 
   void _onLogout() {
@@ -176,6 +191,10 @@ class _HomeShellState extends State<HomeShell> {
     _membersFuture = widget.authService.fetchMembers();
   }
 
+  void _retryLoadMembers() {
+    setState(() => _membersFuture = widget.authService.fetchMembers());
+  }
+
   @override
   Widget build(BuildContext context) {
     final isOwner = widget.member.isOwner;
@@ -187,12 +206,23 @@ class _HomeShellState extends State<HomeShell> {
             : 'Hi, ${widget.member.name}'),
         actions: [
           IconButton(
-              icon: const Icon(Icons.logout), onPressed: widget.onLogout),
+            icon: const Icon(AppIcons.testAlarm),
+            tooltip: 'Send test alarm',
+            onPressed: () => NotificationService.showTestAlarm(),
+          ),
+          IconButton(
+              icon: const Icon(AppIcons.logout), onPressed: widget.onLogout),
         ],
       ),
       body: FutureBuilder<List<Member>>(
         future: _membersFuture,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return ErrorStateView(
+              message: "Couldn't load your family's member list.",
+              onRetry: _retryLoadMembers,
+            );
+          }
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -215,9 +245,9 @@ class _HomeShellState extends State<HomeShell> {
                   setState(() => _tabIndex = index),
               destinations: const [
                 NavigationDestination(
-                    icon: Icon(Icons.list_alt), label: 'My reminders'),
+                    icon: Icon(AppIcons.myReminders), label: 'My reminders'),
                 NavigationDestination(
-                    icon: Icon(Icons.edit_calendar), label: 'Manage'),
+                    icon: Icon(AppIcons.manageReminders), label: 'Manage'),
               ],
             )
           : null,

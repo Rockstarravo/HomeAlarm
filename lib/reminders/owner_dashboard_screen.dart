@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/theme.dart';
+import '../core/widgets/error_state_view.dart';
 import '../models/member.dart';
 import '../models/reminder.dart';
 import 'reminder_form_screen.dart';
@@ -32,6 +34,12 @@ class OwnerDashboardScreen extends StatelessWidget {
       body: StreamBuilder<List<Reminder>>(
         stream: repository.watchAll(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const ErrorStateView(
+              message: "Couldn't load reminders. Check your connection — "
+                  'this will update automatically once it\'s back.',
+            );
+          }
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -39,7 +47,7 @@ class OwnerDashboardScreen extends StatelessWidget {
           if (reminders.isEmpty) {
             return const Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: EdgeInsets.all(AppSpacing.lg),
                 child: Text(
                   'No reminders yet.\nTap + to create one for your family.',
                   textAlign: TextAlign.center,
@@ -48,15 +56,17 @@ class OwnerDashboardScreen extends StatelessWidget {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md, AppSpacing.md, AppSpacing.md, 96),
             itemCount: reminders.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
             itemBuilder: (context, index) {
               final reminder = reminders[index];
               return Card(
                 child: ListTile(
-                  leading: Icon(
-                      reminder.isActive ? Icons.alarm_on : Icons.alarm_off),
+                  leading: Icon(reminder.isActive
+                      ? AppIcons.reminderActive
+                      : AppIcons.reminderInactive),
                   title: Text(reminder.title),
                   subtitle: Text(
                     [
@@ -98,7 +108,7 @@ class OwnerDashboardScreen extends StatelessWidget {
             ),
           ),
         ),
-        child: const Icon(Icons.add),
+        child: const Icon(AppIcons.add),
       ),
     );
   }

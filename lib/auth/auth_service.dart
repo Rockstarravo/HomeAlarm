@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../core/constants.dart';
 import '../models/member.dart';
 
 /// Static, config-based auth per PROJECT_SPEC.md section 7: no Firebase
@@ -13,9 +14,6 @@ class AuthService {
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _prefsOverride = prefs;
 
-  static const _memberIdKey = 'kinremind.memberId';
-  static const _deviceIdKey = 'kinremind.deviceId';
-
   final FirebaseFirestore _firestore;
   final SharedPreferences? _prefsOverride;
 
@@ -23,7 +21,7 @@ class AuthService {
       _prefsOverride ?? await SharedPreferences.getInstance();
 
   CollectionReference<Map<String, dynamic>> get _membersCollection =>
-      _firestore.collection('members');
+      _firestore.collection(FirestoreCollections.members);
 
   /// The full seeded roster, for the name-picker screen.
   Future<List<Member>> fetchMembers() async {
@@ -45,19 +43,19 @@ class AuthService {
     if (member.pin != pin) return null;
 
     final prefs = await _prefs;
-    await prefs.setString(_memberIdKey, member.id);
+    await prefs.setString(PrefsKeys.memberId, member.id);
     await _ensureDeviceId(prefs);
     return member;
   }
 
   Future<void> logout() async {
     final prefs = await _prefs;
-    await prefs.remove(_memberIdKey);
+    await prefs.remove(PrefsKeys.memberId);
   }
 
   Future<String?> getCachedMemberId() async {
     final prefs = await _prefs;
-    return prefs.getString(_memberIdKey);
+    return prefs.getString(PrefsKeys.memberId);
   }
 
   Future<Member?> getCachedMember() async {
@@ -77,10 +75,10 @@ class AuthService {
   }
 
   Future<String> _ensureDeviceId(SharedPreferences prefs) async {
-    final existing = prefs.getString(_deviceIdKey);
+    final existing = prefs.getString(PrefsKeys.deviceId);
     if (existing != null) return existing;
     final id = const Uuid().v4();
-    await prefs.setString(_deviceIdKey, id);
+    await prefs.setString(PrefsKeys.deviceId, id);
     return id;
   }
 }

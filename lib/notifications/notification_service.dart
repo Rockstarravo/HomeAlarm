@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../alarms/alarm_scheduler.dart';
 import '../auth/auth_service.dart';
+import '../core/constants.dart';
 import '../models/reminder.dart';
 
 /// Full-screen, alarm-style notification with Dismiss / Snooze actions
@@ -14,7 +15,6 @@ import '../models/reminder.dart';
 class NotificationService {
   NotificationService._();
 
-  static const alarmChannelId = 'kinremind_alarm';
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
@@ -33,10 +33,9 @@ class NotificationService {
     );
 
     const channel = AndroidNotificationChannel(
-      alarmChannelId,
-      'Alarm reminders',
-      description:
-          'Full-screen alarm-style reminders that ring through silent mode.',
+      NotificationConfig.alarmChannelId,
+      NotificationConfig.alarmChannelName,
+      description: NotificationConfig.alarmChannelDescription,
       importance: Importance.max,
       playSound: true,
       audioAttributesUsage: AudioAttributesUsage.alarm,
@@ -65,7 +64,7 @@ class NotificationService {
         await Firebase.initializeApp();
       }
       final doc = await FirebaseFirestore.instance
-          .collection('reminders')
+          .collection(FirestoreCollections.reminders)
           .doc(reminderId)
           .get();
       final data = doc.data();
@@ -82,31 +81,55 @@ class NotificationService {
       _notificationIdFor(reminderId),
       title,
       body,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          alarmChannelId,
-          'Alarm reminders',
-          channelDescription:
-              'Full-screen alarm-style reminders that ring through silent mode.',
-          importance: Importance.max,
-          priority: Priority.high,
-          category: AndroidNotificationCategory.alarm,
-          audioAttributesUsage: AudioAttributesUsage.alarm,
-          fullScreenIntent: true,
-          ongoing: true,
-          autoCancel: false,
-          playSound: true,
-          enableVibration: true,
-          visibility: NotificationVisibility.public,
-          actions: [
-            AndroidNotificationAction('snooze', 'Snooze 10m',
-                showsUserInterface: false),
-            AndroidNotificationAction('dismiss', 'Dismiss',
-                showsUserInterface: false, cancelNotification: true),
-          ],
-        ),
-      ),
+      _alarmNotificationDetails(includeSnooze: true),
       payload: reminderId,
+    );
+  }
+
+  /// Rings the exact same full-screen alarm a real reminder would, right
+  /// now, with no Firestore reminder involved. Lets a member confirm their
+  /// phone actually rings through silent mode as soon as they finish
+  /// onboarding, instead of waiting — and hoping — for the next real
+  /// scheduled reminder. Its Dismiss action just clears the notification;
+  /// see [handleNotificationAction].
+  static Future<void> showTestAlarm() async {
+    await initialize();
+    await _plugin.show(
+      _notificationIdFor(NotificationConfig.testReminderId),
+      'Test alarm',
+      'This is what a KinRemind reminder looks and sounds like. '
+          'Tap Dismiss to clear it.',
+      _alarmNotificationDetails(includeSnooze: false),
+      payload: NotificationConfig.testReminderId,
+    );
+  }
+
+  static NotificationDetails _alarmNotificationDetails({
+    required bool includeSnooze,
+  }) {
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        NotificationConfig.alarmChannelId,
+        NotificationConfig.alarmChannelName,
+        channelDescription: NotificationConfig.alarmChannelDescription,
+        importance: Importance.max,
+        priority: Priority.high,
+        category: AndroidNotificationCategory.alarm,
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+        fullScreenIntent: true,
+        ongoing: true,
+        autoCancel: false,
+        playSound: true,
+        enableVibration: true,
+        visibility: NotificationVisibility.public,
+        actions: [
+          if (includeSnooze)
+            const AndroidNotificationAction('snooze', 'Snooze 10m',
+                showsUserInterface: false),
+          const AndroidNotificationAction('dismiss', 'Dismiss',
+              showsUserInterface: false, cancelNotification: true),
+        ],
+      ),
     );
   }
 
@@ -135,9 +158,9 @@ class NotificationService {
       await Firebase.initializeApp();
     }
     await FirebaseFirestore.instance
-        .collection('reminders')
+        .collection(FirestoreCollections.reminders)
         .doc(reminderId)
-        .collection('ack')
+        .collection(FirestoreCollections.acks)
         .doc(memberId)
         .set(ReminderAck(memberId: memberId, status: status).toFirestore());
   }
@@ -146,6 +169,13 @@ class NotificationService {
 Future<void> handleNotificationAction(NotificationResponse response) async {
   final reminderId = response.payload;
   if (reminderId == null || reminderId.isEmpty) return;
+
+  if (reminderId == NotificationConfig.testReminderId) {
+    // Never a real reminder — just clear it, no AlarmManager/Firestore.
+    await NotificationService._plugin
+        .cancel(NotificationService._notificationIdFor(reminderId));
+    return;
+  }
 
   switch (response.actionId) {
     case 'dismiss':

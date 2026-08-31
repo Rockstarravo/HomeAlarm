@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/constants.dart';
 import '../models/reminder.dart';
 import '../notifications/notification_service.dart';
 
@@ -18,12 +19,6 @@ import '../notifications/notification_service.dart';
 /// throttling) still resolves correctly instead of silently doing nothing.
 class AlarmScheduler {
   AlarmScheduler._();
-
-  static const _pendingKey = 'kinremind.pendingAlarms';
-
-  /// Alarms fire for anything due within this trailing window, to absorb
-  /// scheduling jitter from Doze/OEM battery management.
-  static const _dueTolerance = Duration(minutes: 2);
 
   /// Deterministic AlarmManager id. Collisions between two reminders are an
   /// accepted MVP trade-off (see PROJECT_SPEC.md section 10 for the class of
@@ -67,7 +62,7 @@ class AlarmScheduler {
   /// Dismiss is tapped. No ack is written.
   static Future<void> snooze(
     String reminderId, {
-    Duration duration = const Duration(minutes: 10),
+    Duration duration = AlarmConfig.snoozeDuration,
   }) async {
     final pending = await _readPending();
     final entry = pending[reminderId];
@@ -112,7 +107,7 @@ class AlarmScheduler {
 
   static Future<Map<String, Map<String, dynamic>>> _readPending() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_pendingKey);
+    final raw = prefs.getString(PrefsKeys.pendingAlarms);
     if (raw == null || raw.isEmpty) return {};
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
     return decoded.map(
@@ -122,7 +117,7 @@ class AlarmScheduler {
   static Future<void> _writePending(
       Map<String, Map<String, dynamic>> pending) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_pendingKey, jsonEncode(pending));
+    await prefs.setString(PrefsKeys.pendingAlarms, jsonEncode(pending));
   }
 
   static Future<void> _upsertPending({
@@ -162,7 +157,7 @@ Future<void> alarmCallbackDispatcher() async {
     final data = entry.value;
     final fireEpochMs = data['fireEpochMs'] as int;
     final dueAt = DateTime.fromMillisecondsSinceEpoch(fireEpochMs);
-    if (now.isBefore(dueAt.subtract(AlarmScheduler._dueTolerance))) {
+    if (now.isBefore(dueAt.subtract(AlarmConfig.dueTolerance))) {
       continue; // not due yet — leave scheduled
     }
 

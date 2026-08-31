@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../core/constants.dart';
 import '../models/reminder.dart';
 
 /// Thin Firestore wrapper for the `reminders` collection and its per-member
@@ -11,7 +12,7 @@ class ReminderRepository {
   final FirebaseFirestore _firestore;
 
   CollectionReference<Map<String, dynamic>> get _reminders =>
-      _firestore.collection('reminders');
+      _firestore.collection(FirestoreCollections.reminders);
 
   /// Every reminder, for the owner's dashboard.
   Stream<List<Reminder>> watchAll() {
@@ -60,7 +61,7 @@ class ReminderRepository {
   Stream<Map<String, ReminderAck>> watchAcks(String reminderId) {
     return _reminders
         .doc(reminderId)
-        .collection('ack')
+        .collection(FirestoreCollections.acks)
         .snapshots()
         .map((snapshot) {
       final acks = <String, ReminderAck>{};

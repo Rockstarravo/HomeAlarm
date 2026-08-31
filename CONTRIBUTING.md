@@ -11,7 +11,8 @@ already recognized as roadmap rather than MVP scope.
 ## Setting up a local dev Firebase project
 
 Don't develop against your real family's project. Spin up a second,
-throwaway Firebase project the same way the README describes for a real
+throwaway Firebase project the same way
+[docs/01-quick-start.md](./docs/01-quick-start.md) describes for a real
 deployment (Spark plan, Firestore enabled, `flutterfire configure`, seed a
 couple of fake members via `firebase/seed_members.md`). This keeps your
 test reminders and alarms out of anyone's actual phone.
@@ -21,10 +22,15 @@ test reminders and alarms out of anyone's actual phone.
 - Standard `flutter_lints` rules (`analysis_options.yaml`) — run
   `flutter analyze` before opening a PR.
 - Format with `dart format .`.
-- Match the existing module boundaries (`lib/auth`, `lib/reminders`,
-  `lib/sync`, `lib/alarms`, `lib/notifications`, `lib/onboarding`,
-  `lib/health`) rather than reaching across them directly; go through the
-  service/repository class a module already exposes.
+- Match the existing module boundaries rather than reaching across them
+  directly — go through the service/repository class a module already
+  exposes. See [docs/02-architecture.md](./docs/02-architecture.md) for
+  the folder map and [docs/03-modules.md](./docs/03-modules.md) for what
+  each one owns.
+- New magic strings/numbers shared by more than one file belong in
+  `lib/core/constants.dart`, not copy-pasted. New icons go in
+  `lib/core/theme/app_icons.dart` rather than an inline `Icons.*`
+  reference, so the whole icon set stays swappable from one file.
 - Comments explain *why*, not *what* — see the top of any existing file
   for the tone to match.
 

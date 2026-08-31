@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/theme.dart';
 import '../models/member.dart';
 import '../models/reminder.dart';
 import 'reminder_repository.dart';
@@ -104,7 +105,7 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           children: [
             TextFormField(
               controller: _titleController,
@@ -113,18 +114,18 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
                   ? 'Title is required'
                   : null,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             TextFormField(
               controller: _notesController,
               decoration: const InputDecoration(labelText: 'Notes (optional)'),
               maxLines: 2,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Time'),
               subtitle: Text(_time.format(context)),
-              trailing: const Icon(Icons.access_time),
+              trailing: const Icon(AppIcons.time),
               onTap: _pickTime,
             ),
             const Divider(),
@@ -148,9 +149,8 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
             ),
             const Divider(),
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child:
-                  Text('Remind', style: TextStyle(fontWeight: FontWeight.bold)),
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              child: Text('Remind', style: AppTextStyles.sectionLabel),
             ),
             ...widget.members.map(
               (member) => CheckboxListTile(
@@ -166,7 +166,7 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
                 }),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             FilledButton(
               onPressed: _saving ? null : _save,
               child: _saving

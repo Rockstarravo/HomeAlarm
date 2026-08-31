@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/theme/theme.dart';
 import '../models/member.dart';
 import 'auth_service.dart';
 
@@ -76,7 +77,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               maxLength: 8,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 28, letterSpacing: 8),
+              style: AppTextStyles.pinEntry,
               decoration: InputDecoration(
                 counterText: '',
                 errorText: _error,

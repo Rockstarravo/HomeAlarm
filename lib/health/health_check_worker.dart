@@ -3,6 +3,7 @@ import 'package:workmanager/workmanager.dart';
 
 import '../alarms/alarm_scheduler.dart';
 import '../auth/auth_service.dart';
+import '../core/constants.dart';
 import '../reminders/reminder_repository.dart';
 
 /// PROJECT_SPEC.md section 4: the *only* true polling in this system, and
@@ -15,14 +16,12 @@ import '../reminders/reminder_repository.dart';
 class HealthCheckWorker {
   HealthCheckWorker._();
 
-  static const taskName = 'kinremind.healthCheck';
-
   static Future<void> register() async {
     await Workmanager().initialize(healthCheckCallbackDispatcher);
     await Workmanager().registerPeriodicTask(
-      taskName,
-      taskName,
-      frequency: const Duration(minutes: 15),
+      HealthCheckConfig.taskName,
+      HealthCheckConfig.taskName,
+      frequency: HealthCheckConfig.interval,
       constraints: Constraints(networkType: NetworkType.connected),
     );
   }

@@ -2,6 +2,8 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../core/constants.dart';
+
 class _OemTarget {
   const _OemTarget(this.package, this.activity);
   final String package;
@@ -18,7 +20,7 @@ class _OemTarget {
 class OemSettings {
   OemSettings._();
 
-  static const _channel = MethodChannel('com.kinremind.app/oem_settings');
+  static const _channel = MethodChannel(ChannelNames.oemSettings);
 
   static const Map<String, List<_OemTarget>> _targetsByManufacturer = {
     'xiaomi': [

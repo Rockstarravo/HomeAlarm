@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+import '../core/constants.dart';
+
 /// Dart-side handle for the native `SyncForegroundService`
 /// (android/app/src/main/kotlin/com/kinremind/app/SyncForegroundService.kt),
 /// which hosts the headless Firestore listener described in
@@ -8,7 +10,7 @@ import 'package:flutter/services.dart';
 class ForegroundSyncService {
   ForegroundSyncService._();
 
-  static const _channel = MethodChannel('com.kinremind.app/sync_service');
+  static const _channel = MethodChannel(ChannelNames.syncService);
 
   static Future<void> start() => _channel.invokeMethod('startSyncService');
 
