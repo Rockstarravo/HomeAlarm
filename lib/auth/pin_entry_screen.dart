@@ -67,6 +67,14 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
     }
 
     widget.onLoggedIn(member);
+
+    // MemberPickerScreen -> PinEntryScreen were both pushed on top of
+    // RootGate's own route. onLoggedIn() above already updated RootGate's
+    // state (so it's now built ready to show the home screen), but that
+    // content stays hidden until these two pushed routes are popped off —
+    // without this, the app looks "stuck" until the user manually
+    // navigates back.
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
