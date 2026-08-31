@@ -18,12 +18,20 @@ def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "
 
 android {
     namespace = "com.kinremind.app"
-    compileSdk = 34
+    // 36, not 34: shared_preferences_android requires compiling against at
+    // least SDK 36. SDKs are backward compatible, so this doesn't raise the
+    // minimum Android version the app runs on (still minSdk 26 below).
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications requires this to build against a
+        // release target — without it, Gradle fails at
+        // :app:checkReleaseAarMetadata with "requires core library
+        // desugaring to be enabled".
+        coreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -65,4 +73,5 @@ dependencies {
     implementation platform("com.google.firebase:firebase-bom:33.5.1")
     implementation "androidx.core:core-ktx:1.13.1"
     implementation "androidx.work:work-runtime-ktx:2.9.1"
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
 }
