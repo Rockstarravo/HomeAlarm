@@ -61,15 +61,11 @@ class SyncForegroundService : Service() {
         loader.ensureInitializationComplete(applicationContext, null)
 
         val engine = FlutterEngine(applicationContext)
-        val callback = DartExecutor.DartCallback(
-            assets,
+        val entrypoint = DartExecutor.DartEntrypoint(
             loader.findAppBundlePath(),
-            DartExecutor.DartEntrypoint(
-                loader.findAppBundlePath(),
-                "syncEntrypoint",
-            ),
+            "syncEntrypoint",
         )
-        engine.dartExecutor.executeDartCallback(callback)
+        engine.dartExecutor.executeDartEntrypoint(entrypoint)
         flutterEngine = engine
     }
 
