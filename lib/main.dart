@@ -195,6 +195,15 @@ class _HomeShellState extends State<HomeShell> {
     setState(() => _membersFuture = widget.authService.fetchMembers());
   }
 
+  Future<void> _sendTestAlarm(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await NotificationService.showTestAlarm();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Test alarm failed: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isOwner = widget.member.isOwner;
@@ -208,7 +217,7 @@ class _HomeShellState extends State<HomeShell> {
           IconButton(
             icon: const Icon(AppIcons.testAlarm),
             tooltip: 'Send test alarm',
-            onPressed: () => NotificationService.showTestAlarm(),
+            onPressed: () => _sendTestAlarm(context),
           ),
           IconButton(
               icon: const Icon(AppIcons.logout), onPressed: widget.onLogout),
