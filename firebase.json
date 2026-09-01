@@ -2,5 +2,24 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "homealarm-37b49",
+          "appId": "1:167934682449:android:93667c8418b5e513645f70",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "homealarm-37b49",
+          "configurations": {
+            "android": "1:167934682449:android:93667c8418b5e513645f70"
+          }
+        }
+      }
+    }
   }
 }
