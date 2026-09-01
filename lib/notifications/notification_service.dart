@@ -104,6 +104,33 @@ class NotificationService {
     );
   }
 
+  /// Shown from the background sync isolate when a reminder could not be
+  /// armed because the "Alarms & reminders" permission is off. Without this
+  /// the failure is invisible: the reminder still lists in-app, it just
+  /// never rings. Uses a fixed id so repeated snapshots replace rather than
+  /// stack it, and clears itself once tapped.
+  static Future<void> showSchedulingBlockedNotification() async {
+    await initialize();
+    await _plugin.show(
+      _notificationIdFor(NotificationConfig.schedulingBlockedId),
+      "KinRemind can't ring your reminders",
+      'The "Alarms & reminders" permission is off for KinRemind. Open the '
+          'app to turn it back on — reminders will not ring until you do.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          NotificationConfig.alarmChannelId,
+          NotificationConfig.alarmChannelName,
+          channelDescription: NotificationConfig.alarmChannelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+          category: AndroidNotificationCategory.error,
+          autoCancel: true,
+          visibility: NotificationVisibility.public,
+        ),
+      ),
+    );
+  }
+
   static NotificationDetails _alarmNotificationDetails({
     required bool includeSnooze,
   }) {

@@ -52,6 +52,11 @@ class NotificationConfig {
   /// so it's excluded from the normal Dismiss/Snooze → AlarmManager/ack
   /// handling.
   static const testReminderId = 'kinremind-test-alarm';
+
+  /// Payload id for the "reminders can't ring" warning fired from the sync
+  /// isolate when an exact-alarm scheduling attempt is blocked by a missing
+  /// permission — see NotificationService.showSchedulingBlockedNotification.
+  static const schedulingBlockedId = 'kinremind-scheduling-blocked';
 }
 
 /// Timing knobs for alarm scheduling (PROJECT_SPEC.md section 8).
