@@ -4,6 +4,12 @@
     <!-- Alarm delivery. Also covers boot-time alarm/service recovery for
          both the boot receiver below and workmanager's own reschedule. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- API 33+: auto-granted (no user prompt) and, unlike SCHEDULE_EXACT_ALARM,
+         not auto-revoked from an idle app. Ringing at an exact minute is this
+         app's core function, so the stricter permission is warranted. Play
+         Store restricts USE_EXACT_ALARM to alarm/calendar apps; fine for a
+         sideloaded family build, revisit before any store distribution. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />

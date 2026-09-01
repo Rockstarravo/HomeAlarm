@@ -2,11 +2,28 @@ import 'dart:convert';
 
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants.dart';
 import '../models/reminder.dart';
 import '../notifications/notification_service.dart';
+
+/// Thrown by [AlarmScheduler] when the OS would silently refuse to register
+/// an exact alarm because `SCHEDULE_EXACT_ALARM` is not effectively held.
+///
+/// This matters because `android_alarm_manager_plus` does **not** surface
+/// that case: its native `AlarmService.scheduleAlarm` logs an error, skips
+/// the `AlarmManager` call, and still returns success — so `oneShotAt`
+/// resolves to `true` while nothing is scheduled. We check the same
+/// condition ourselves and raise this instead of arming into the void.
+class ExactAlarmPermissionException implements Exception {
+  const ExactAlarmPermissionException();
+
+  @override
+  String toString() => 'ExactAlarmPermissionException: the "Alarms & '
+      'reminders" permission is off, so AlarmManager would drop this alarm.';
+}
 
 /// Exact-alarm scheduling on AlarmManager's STREAM_ALARM channel.
 ///
@@ -33,8 +50,13 @@ class AlarmScheduler {
   /// 8 requires the old alarm to be explicitly cancelled first.
   static Future<void> schedule(Reminder reminder) async {
     await cancel(reminder.id);
-    final fireTime =
-        _nextFireTime(reminder.hour, reminder.minute, DateTime.now());
+    final fireTime = _nextFireTime(
+      reminder.hour,
+      reminder.minute,
+      DateTime.now(),
+      grace: AlarmConfig.dueTolerance,
+      oneTime: reminder.recurrence == ReminderRecurrence.oneTime,
+    );
     debugPrint('[alarms] scheduling "${reminder.title}" (${reminder.id}) '
         'next fire: $fireTime');
     await _upsertPending(
@@ -87,6 +109,11 @@ class AlarmScheduler {
   }
 
   static Future<void> _arm(String reminderId, DateTime fireTime) async {
+    if (!await canScheduleExactAlarms()) {
+      // Fail loudly: android_alarm_manager_plus would return success here
+      // while silently registering nothing (see [ExactAlarmPermissionException]).
+      throw const ExactAlarmPermissionException();
+    }
     final armed = await AndroidAlarmManager.oneShotAt(
       fireTime,
       alarmIdFor(reminderId),
@@ -97,20 +124,58 @@ class AlarmScheduler {
       allowWhileIdle: true,
     );
     debugPrint('[alarms] armed reminderId=$reminderId for $fireTime -> $armed');
+    if (!armed) {
+      throw StateError(
+          'AndroidAlarmManager.oneShotAt returned false for $reminderId');
+    }
   }
 
-  static DateTime _nextFireTime(int hour, int minute, DateTime from) {
-    var candidate = DateTime(from.year, from.month, from.day, hour, minute);
-    if (!candidate.isAfter(from)) {
-      // PROJECT_SPEC.md edge case table: a missed time schedules the *next*
-      // occurrence rather than firing immediately as catch-up.
-      candidate = candidate.add(const Duration(days: 1));
+  /// Mirrors the exact check `android_alarm_manager_plus` runs natively
+  /// before deciding whether to register an exact alarm. On Android 12+
+  /// `permission_handler` maps this to `AlarmManager.canScheduleExactAlarms()`;
+  /// on older versions no permission is required and it reports granted.
+  static Future<bool> canScheduleExactAlarms() async {
+    final status = await Permission.scheduleExactAlarm.status;
+    return status.isGranted;
+  }
+
+  /// Resolves "HH:mm" to the next concrete instant to fire at.
+  ///
+  /// [grace] widens "now" backwards: a candidate up to [grace] in the past
+  /// still counts as due-now rather than rolling forward. This absorbs the
+  /// clock skew between the owner's phone and this one, plus Firestore
+  /// snapshot latency — without it, a reminder created "2 minutes from now"
+  /// that lands a few seconds late is silently pushed a full day out.
+  ///
+  /// [oneTime] reminders have no "next occurrence", so a genuinely-late one
+  /// fires almost immediately instead of vanishing until tomorrow. Recurring
+  /// reminders keep the PROJECT_SPEC.md edge-case behaviour of scheduling
+  /// the next occurrence rather than firing catch-up.
+  static DateTime _nextFireTime(
+    int hour,
+    int minute,
+    DateTime from, {
+    Duration grace = Duration.zero,
+    bool oneTime = false,
+  }) {
+    final candidate = DateTime(from.year, from.month, from.day, hour, minute);
+    if (candidate.isAfter(from.subtract(grace))) {
+      return candidate;
     }
-    return candidate;
+    if (oneTime) {
+      return from.add(const Duration(seconds: 5));
+    }
+    return candidate.add(const Duration(days: 1));
   }
 
   static Future<Map<String, Map<String, dynamic>>> _readPending() async {
     final prefs = await SharedPreferences.getInstance();
+    // The pending table is written from the sync isolate and the health-check
+    // isolate but read here from android_alarm_manager_plus's own long-lived
+    // background isolate, whose SharedPreferences copy is cached at first use
+    // and never re-read from disk. Without this, an alarm scheduled after that
+    // isolate started firing looks absent and the callback shows nothing.
+    await prefs.reload();
     final raw = prefs.getString(PrefsKeys.pendingAlarms);
     if (raw == null || raw.isEmpty) return {};
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -153,6 +218,9 @@ class AlarmScheduler {
 /// static) function per android_alarm_manager_plus's requirements.
 @pragma('vm:entry-point')
 Future<void> alarmCallbackDispatcher() async {
+  // AlarmManager fires this in a fresh isolate — nothing is initialized yet.
+  await AlarmScheduler.initialize();
+
   final now = DateTime.now();
   final pending = await AlarmScheduler._readPending();
   debugPrint('[alarms] alarmCallbackDispatcher fired at $now, '
@@ -161,32 +229,36 @@ Future<void> alarmCallbackDispatcher() async {
   for (final entry in pending.entries.toList()) {
     final reminderId = entry.key;
     final data = entry.value;
-    final fireEpochMs = data['fireEpochMs'] as int;
-    final dueAt = DateTime.fromMillisecondsSinceEpoch(fireEpochMs);
-    if (now.isBefore(dueAt.subtract(AlarmConfig.dueTolerance))) {
-      debugPrint('[alarms] $reminderId not due until $dueAt, skipping');
-      continue; // not due yet — leave scheduled
-    }
+    try {
+      final fireEpochMs = data['fireEpochMs'] as int;
+      final dueAt = DateTime.fromMillisecondsSinceEpoch(fireEpochMs);
+      if (now.isBefore(dueAt.subtract(AlarmConfig.dueTolerance))) {
+        debugPrint('[alarms] $reminderId not due until $dueAt, skipping');
+        continue; // not due yet — leave scheduled
+      }
 
-    debugPrint('[alarms] $reminderId is due, showing notification');
-    await NotificationService.showAlarmNotification(reminderId: reminderId);
+      debugPrint('[alarms] $reminderId is due, showing notification');
+      await NotificationService.showAlarmNotification(reminderId: reminderId);
 
-    final recurrence =
-        data['recurrence'] as String? ?? ReminderRecurrence.oneTime;
-    if (recurrence == ReminderRecurrence.daily) {
-      final hour = data['hour'] as int? ?? 0;
-      final minute = data['minute'] as int? ?? 0;
-      final next = AlarmScheduler._nextFireTime(hour, minute, now);
-      await AlarmScheduler._upsertPending(
-        reminderId: reminderId,
-        recurrence: recurrence,
-        hour: hour,
-        minute: minute,
-        fireTime: next,
-      );
-      await AlarmScheduler._arm(reminderId, next);
-    } else {
-      await AlarmScheduler._removePending(reminderId);
+      final recurrence =
+          data['recurrence'] as String? ?? ReminderRecurrence.oneTime;
+      if (recurrence == ReminderRecurrence.daily) {
+        final hour = data['hour'] as int? ?? 0;
+        final minute = data['minute'] as int? ?? 0;
+        final next = AlarmScheduler._nextFireTime(hour, minute, now);
+        await AlarmScheduler._upsertPending(
+          reminderId: reminderId,
+          recurrence: recurrence,
+          hour: hour,
+          minute: minute,
+          fireTime: next,
+        );
+        await AlarmScheduler._arm(reminderId, next);
+      } else {
+        await AlarmScheduler._removePending(reminderId);
+      }
+    } catch (e) {
+      debugPrint('[alarms] error processing $reminderId: $e');
     }
   }
 }

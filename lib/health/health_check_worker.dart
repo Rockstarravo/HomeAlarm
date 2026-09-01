@@ -47,10 +47,10 @@ void healthCheckCallbackDispatcher() {
         await AlarmScheduler.cancel(reminderId);
       }
     }
+    // Always reschedule every active reminder so stale fire times (e.g. from
+    // a daily alarm whose _arm() failed in the callback isolate) are corrected.
     for (final reminder in reminders) {
-      if (!scheduledIds.contains(reminder.id)) {
-        await AlarmScheduler.schedule(reminder);
-      }
+      await AlarmScheduler.schedule(reminder);
     }
 
     return true;
