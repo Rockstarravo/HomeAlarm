@@ -8,9 +8,10 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
-import io.flutter.embedding.engine.loader.FlutterLoader
+import io.flutter.plugins.GeneratedPluginRegistrant
 
 /**
  * Foreground service required by PROJECT_SPEC.md section 4: keeps a
@@ -56,13 +57,23 @@ class SyncForegroundService : Service() {
     private fun startHeadlessEngineIfNeeded() {
         if (flutterEngine != null) return
 
-        val loader = FlutterLoader()
+        // The shared, already-(re-)initializable loader — not `FlutterLoader()`,
+        // which builds an independent instance out of step with the one the
+        // main Activity's FlutterEngine uses. A previous version of this file
+        // did that and had to be fixed once already (see git history); these
+        // two calls are safely idempotent on the shared instance.
+        val loader = FlutterInjector.instance().flutterLoader()
         loader.startInitialization(applicationContext)
         loader.ensureInitializationComplete(applicationContext, null)
 
         val engine = FlutterEngine(applicationContext)
+        GeneratedPluginRegistrant.registerWith(engine)
+        // Two-arg DartEntrypoint uses an empty library URI and only finds functions
+        // declared in lib/main.dart. syncEntrypoint lives in a different file, so
+        // the library URI must be supplied explicitly.
         val entrypoint = DartExecutor.DartEntrypoint(
             loader.findAppBundlePath(),
+            "package:kinremind/sync/sync_isolate_entrypoint.dart",
             "syncEntrypoint",
         )
         engine.dartExecutor.executeDartEntrypoint(entrypoint)
