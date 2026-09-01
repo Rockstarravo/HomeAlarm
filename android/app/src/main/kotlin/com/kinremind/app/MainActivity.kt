@@ -23,6 +23,23 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SYNC_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
+                    "setSyncCallbackHandle" -> {
+                        // Persisted natively (not via the shared_preferences plugin) because
+                        // SyncForegroundService reads this *before* any Flutter/plugin code
+                        // has run in its headless engine — including after a bare reboot,
+                        // when BootCompletedReceiver starts that service directly. See
+                        // lib/sync/foreground_service.dart for why this exists at all.
+                        val handle = (call.arguments as? Number)?.toLong()
+                        if (handle == null) {
+                            result.error("bad_args", "handle must be an int", null)
+                            return@setMethodCallHandler
+                        }
+                        getSharedPreferences(SyncForegroundService.NATIVE_PREFS_NAME, MODE_PRIVATE)
+                            .edit()
+                            .putLong(SyncForegroundService.CALLBACK_HANDLE_KEY, handle)
+                            .apply()
+                        result.success(null)
+                    }
                     "startSyncService" -> {
                         val intent = Intent(this, SyncForegroundService::class.java)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
