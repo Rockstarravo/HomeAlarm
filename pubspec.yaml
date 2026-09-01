@@ -18,7 +18,7 @@ dependencies:
   cloud_firestore: ^5.4.4
 
   # Alarms & notifications
-  android_alarm_manager_plus: ^4.0.4
+  android_alarm_manager_plus: ^5.1.1
   flutter_local_notifications: ^18.0.1
 
   # Local session + background work
